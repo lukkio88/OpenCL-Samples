@@ -3,5 +3,5 @@ project(OpenCL-test)
 
 set(CMAKE_CXX_STANDARD 11)
 
-add_subdirectory(./ParallelSum)
+add_subdirectory(./ParallelDotProduct)
 add_subdirectory(./VectorSumParallel)

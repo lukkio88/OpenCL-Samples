@@ -117,6 +117,8 @@ bool check_error(cl_uint err, std::string error_message) {
 	return false;
 }
 
+//The functions above can be re-factored
+
 bool runCL(double * a, double * b, double * c, const int & n) {
 
 	cl_int err;

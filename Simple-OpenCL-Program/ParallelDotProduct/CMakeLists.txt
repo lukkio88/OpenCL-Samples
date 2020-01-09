@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.12 FATAL_ERROR)
-project(ParallelSum)
+project(ParallelDotProduct)
 
 set(CMAKE_CXX_STANDARD 11)
 if(DEFINED ENV{OpenCL_INCLUDE_DIR})
@@ -26,6 +26,6 @@ set(SRC_FILES host.cpp)
 set(CL_FILES device.cl)
 source_group("CL Files" FILES ${CL_FILES})
 
-add_executable(parallel-sum ${SRC_FILES} ${CL_FILES})
-include_directories(parallel-sum ${OpenCL_INCLUDE_DIR})
-target_link_libraries(parallel-sum ${OpenCL_LIBRARY})
+add_executable(parallel-dot-product ${SRC_FILES} ${CL_FILES})
+include_directories(parallel-dot-product ${OpenCL_INCLUDE_DIR})
+target_link_libraries(parallel-dot-product ${OpenCL_LIBRARY})
