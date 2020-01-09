@@ -2,16 +2,14 @@
 
 #include <stdio.h>
 #include <stdlib.h>
-#include <tchar.h>
+//#include <tchar.h>
 #include <memory.h>
 #include <vector>
 #include <fstream>
-#include <Windows.h>
-
 #include <iostream>
 #include <string>
-#include <Windows.h>
-#include "CL\cl.h"
+//#include <Windows.h>
+#include <CL/cl.h>
 
 const char* TranslateOpenCLError(cl_int errorCode)
 {
@@ -89,11 +87,11 @@ void LogError(const char* str, ...)
 	if (str)
 	{
 		va_list args;
-		va_start(args, str);
+		//va_start(args, str);
 
-		vfprintf(stderr, str, args);
+		printf("This is an error");
 
-		va_end(args);
+		//va_end(args);
 	}
 }
 
@@ -265,5 +263,12 @@ int main(int argc, char **argv) {
 	}
 
 	runCL(a.data(), b.data(), c, n);
+
+	for(int i = 0; i < n; ++i)
+    {
+	    std::cout << c[i] << " ";
+    }
+    std::cout << std::endl;
+
 	return 0;
 }
