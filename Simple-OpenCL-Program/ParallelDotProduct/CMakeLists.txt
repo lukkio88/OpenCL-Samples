@@ -23,9 +23,12 @@ endif()
 
 set(SRC_FILES host.cpp)
 
+#set(COMMON_LIB ${CMAKE_BUILD_TYPE}/Common/libcommon.a)
+
 set(CL_FILES device.cl)
 source_group("CL Files" FILES ${CL_FILES})
 
 add_executable(parallel-dot-product ${SRC_FILES} ${CL_FILES})
 include_directories(parallel-dot-product ${OpenCL_INCLUDE_DIR})
-target_link_libraries(parallel-dot-product ${OpenCL_LIBRARY})
+link_directories(${CMAKE_SOURCE_DIR}/lib)
+target_link_libraries(parallel-dot-product ${OpenCL_LIBRARY} common)

@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.12 FATAL_ERROR)
-project(VectorSumParallel)
+project(Common)
 
 set(CMAKE_CXX_STANDARD 11)
 if(DEFINED ENV{OpenCL_INCLUDE_DIR})
@@ -21,12 +21,12 @@ if (NOT OpenCL_FOUND )
     return()
 endif()
 
-set(SRC_FILES host.cpp)
+set(SRC_FILES common.cpp)
 
-set(CL_FILES device.cl)
-source_group("CL Files" FILES ${CL_FILES})
+message("This is the CMAKE_SOURCE_DIR")
+message("${CMAKE_SOURCE_DIR}")
 
-add_executable(vector-sum-parallel ${SRC_FILES} ${CL_FILES})
-include_directories(vector-sum-parallel ${OpenCL_INCLUDE_DIR})
-link_directories(${CMAKE_SOURCE_DIR}/lib)
-target_link_libraries(vector-sum-parallel ${OpenCL_LIBRARY} common)
+add_library(common STATIC ${SRC_FILES})
+include_directories(common ${OpenCL_INCLUDE_DIR} ./)
+target_link_libraries(common ${OpenCL_LIBRARY})
+set_target_properties(common PROPERTIES ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR}/lib)
