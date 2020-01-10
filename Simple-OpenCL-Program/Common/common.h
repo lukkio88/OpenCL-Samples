@@ -128,7 +128,7 @@ struct BufferDescriptor
 
 struct KernelArgDescriptor
 {
-    cl_mem mCLMem;
+    cl_mem *mCLMem;
     size_t size;
     cl_uint mType;
 };
@@ -276,15 +276,13 @@ public:
         for(auto argDescr : argDescrs)
         {
             if (argDescr.mType == CL_MEM_READ_WRITE && check_error(
-                    clEnqueueReadBuffer(mCmdQueue, argDescr.mCLMem, CL_TRUE, 0, argDescr.size, nullptr, 0, nullptr,
+                    clEnqueueReadBuffer(mCmdQueue, *(argDescr.mCLMem), CL_TRUE, 0, argDescr.size, nullptr, 0, nullptr,
                                         nullptr), "Error in clEnqueueReadBuffer"))
                 exit(1);
         }
 
         clFinish(mCmdQueue);
     }
-
-    void run() {}
 
 private:
     //For the platform

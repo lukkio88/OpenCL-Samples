@@ -18,7 +18,21 @@ bool newRunCL(double * a, double * b, double * c, const int & n) {
     oclPipelineManager.initContextAndCommandQueue(bufferDescr);
     oclPipelineManager.initProgram("device.cl");
 
-    std::vector<KernelArgDescriptor> argDescr;
+    /*
+     * struct KernelArgDescriptor
+        {
+            cl_mem *mCLMem;
+            size_t size;
+            cl_uint mType;
+        };
+     */
+
+    std::vector<KernelArgDescriptor> argDescr{
+            KernelArgDescriptor{&bufferDescr[0].mClMem, bufferDescr[0].mBufferSize, bufferDescr[0].mType},
+            KernelArgDescriptor{&bufferDescr[1].mClMem, bufferDescr[1].mBufferSize, bufferDescr[1].mType},
+            KernelArgDescriptor{nullptr, n*sizeof(double), bufferDescr[0].mType},
+            KernelArgDescriptor{&bufferDescr[2].mClMem, bufferDescr[2].mBufferSize, bufferDescr[2].mType},
+    };
 
     oclPipelineManager.initKernelAndRun("dotProduct",argDescr,n);
 
