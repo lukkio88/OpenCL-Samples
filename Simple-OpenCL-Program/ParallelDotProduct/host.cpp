@@ -1,6 +1,29 @@
 // Host code
 #include "../Common/common.h"
 
+
+bool newRunCL(double * a, double * b, double * c, const int & n) {
+
+    OpenCLPipelineManager oclPipelineManager;
+
+    oclPipelineManager.initializePlatform();
+    oclPipelineManager.initializeDevice();
+
+    std::vector<BufferDescriptor> bufferDescr{
+            BufferDescriptor{a, CL_MEM_READ_ONLY, sizeof(double)*n, 0},
+            BufferDescriptor{b, CL_MEM_READ_ONLY, sizeof(double)*n, 0},
+            BufferDescriptor{c, CL_MEM_READ_WRITE, sizeof(double), 0}
+    };
+
+    oclPipelineManager.initContextAndCommandQueue(bufferDescr);
+    oclPipelineManager.initProgram("device.cl");
+
+    std::vector<KernelArgDescriptor> argDescr;
+
+    oclPipelineManager.initKernelAndRun("dotProduct",argDescr,n);
+
+}
+
 bool runCL(double * a, double * b, double * c, const int & n) {
 
 	cl_int err;
@@ -162,7 +185,7 @@ int main(int argc, char **argv) {
 		b[i] = static_cast<double>(n - i - 1);
 	}
 
-	runCL(a.data(), b.data(), &result, n);
+	newRunCL(a.data(), b.data(), &result, n);
 
 	printVec(a,"a");
 	printVec(b,"b");

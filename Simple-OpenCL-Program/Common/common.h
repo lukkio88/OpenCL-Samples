@@ -109,4 +109,207 @@ inline bool check_error(cl_uint err, std::string error_message) {
 
 int ReadSourceFromFile(const char* fileName, std::string& fileContent, size_t* sourceSize);
 
+/*
+ * Split into
+ *      Platform
+ *      Device
+ *      Context
+ *      Kernel compilation
+ *      Kernel run
+ */
+
+struct BufferDescriptor
+{
+  void * mHostMem;
+  cl_uint mType; //such as CL_MEM_READ_ONLY, CL_MEM_READ_WRITE, etc...
+  size_t mBufferSize;
+  cl_mem mClMem;
+};
+
+struct KernelArgDescriptor
+{
+    cl_mem mCLMem;
+    size_t size;
+    cl_uint mType;
+};
+
+class OpenCLPipelineManager
+{
+public:
+    OpenCLPipelineManager() {
+
+    }
+
+    ~OpenCLPipelineManager() {
+        //Teardown
+        clReleaseCommandQueue(mCmdQueue);
+        clReleaseContext(mContext);
+    }
+
+    void initializePlatform()
+    {
+
+        if (check_error(clGetPlatformIDs(0, nullptr, &mNumPlatforms), "Error in retrieving platforms number"))
+            exit(1);
+
+        mPlatform = std::vector<cl_platform_id>(mNumPlatforms);
+
+        if (check_error(clGetPlatformIDs(mNumPlatforms, &mPlatform[0], nullptr), "Error in retrieving platform ID"))
+            exit(1);
+
+        //Let's print the platforms
+        size_t strLen;
+        for (auto i = 0; i < mNumPlatforms; ++i)
+        {
+            if (check_error(clGetPlatformInfo(mPlatform[i], CL_PLATFORM_NAME, 0, nullptr, &strLen),
+                            "Error in first call getPlatformInfo"))
+                exit(1);
+            mPlatformName = std::vector<char>(strLen);
+            if (check_error(clGetPlatformInfo(mPlatform[i], CL_PLATFORM_NAME, strLen, &mPlatformName[0], nullptr),
+                            "Error in second call getPlatformInfo"))
+                exit(1);
+        }
+    }
+
+    void initializeDevice(cl_int deviceType = CL_DEVICE_TYPE_GPU)
+    {
+        mIdxPlatform = 0;
+        while (mIdxPlatform < mNumPlatforms) {
+            if (!check_error(clGetDeviceIDs(mPlatform[mIdxPlatform], deviceType, 0, nullptr, &mNumDevices), "Error in clGetDeviceIDs loop"))
+                break;
+            ++mIdxPlatform;
+        }
+
+        mDeviceId = std::vector<cl_device_id>(mNumDevices);
+        if (check_error(clGetDeviceIDs(mPlatform[mIdxPlatform], deviceType, mNumDevices, &mDeviceId[0], nullptr), "Error in calling clGetDeviceIDs"))
+            exit(1);
+
+        //TODO: Check if the lines above should be moved in the "Platform"
+
+        mIdxDevice = 0;
+        size_t strLen;
+        while (mIdxDevice < mNumDevices) {
+            if (!check_error(clGetDeviceInfo(mDeviceId[mIdxDevice], CL_DEVICE_NAME, 0, nullptr, &strLen), "Error in calling clGetDeviceInfo"))
+            {
+                mDeviceName = std::vector<char>(strLen);
+                if (!check_error(clGetDeviceInfo(mDeviceId[mIdxDevice], CL_DEVICE_NAME, strLen, &mDeviceName[0], nullptr), "")) {
+                    std::cout << "device[" << mIdxDevice << "] = " << std::string(mDeviceName.data()) << std::endl;
+                    break;
+                }
+            }
+            ++mIdxDevice;
+        }
+    }
+
+    void initContextAndCommandQueue(std::vector<BufferDescriptor>& bufferDescr)
+    {
+        //Now I know the device, I can create context and command queue
+        mContext = clCreateContext(0, 1, &mDeviceId[mIdxDevice], nullptr, nullptr, nullptr);
+        mCmdQueue = clCreateCommandQueue(mContext, mDeviceId[mIdxDevice], 0, nullptr);
+
+        //Let's allocate memory
+        for (auto descriptor : bufferDescr)
+        {
+            descriptor.mClMem = clCreateBuffer(mContext, descriptor.mType, descriptor.mBufferSize, nullptr, nullptr);
+            if (descriptor.mType == CL_MEM_READ_ONLY && check_error(
+                    clEnqueueWriteBuffer(mCmdQueue, descriptor.mClMem, CL_TRUE, 0, descriptor.mBufferSize,
+                                         descriptor.mHostMem, 0, nullptr, nullptr),
+                    "Error in creating clEnqueueWriteBuffer for some cl_mem"))
+            {
+                exit(1);
+            }
+        }
+
+        clFinish(mCmdQueue);
+    }
+
+    void initProgram(std::string clFilename)
+    {
+        cl_int err;
+        //char* source = NULL;
+        std::string source;
+        size_t src_size = 0;
+        if (check_error(ReadSourceFromFile(clFilename.c_str(), source, &src_size), "Error in ReadSourceFromFile"))
+            exit(1);
+        const char *cstr_source = source.c_str();
+        mProgram[0] = clCreateProgramWithSource(mContext, 1, (const char **) &cstr_source, nullptr,
+                                                &err);
+        if (check_error(err, "Error in clCreateProgramWithSource"))
+            exit(1);
+        if (check_error(clBuildProgram(mProgram[0], 1, mDeviceId.data(), nullptr, nullptr, nullptr),
+                        "Error in clBuildProgram"))
+        {
+            // Determine the size of the log
+            size_t log_size;
+            clGetProgramBuildInfo(mProgram[0], mDeviceId[0], CL_PROGRAM_BUILD_LOG, 0, NULL, &log_size);
+
+            // Allocate memory for the log
+            char *log = (char *) malloc(log_size);
+
+            // Get the log
+            clGetProgramBuildInfo(mProgram[0], mDeviceId[0], CL_PROGRAM_BUILD_LOG, log_size, log, NULL);
+
+            // Print the log
+            printf("%s\n", log);
+            exit(1);
+        }
+    }
+
+    void initKernelAndRun(std::string kernelName, std::vector<KernelArgDescriptor>& argDescrs, size_t globalWorkSize)
+    {
+        cl_int err;
+        mKernel[0] = clCreateKernel(mProgram[0], kernelName.c_str(), &err);
+
+        if (check_error(err, "Error in clCreateKernel"))
+            exit(1);
+
+        //Setting kernel args
+        for(auto argDescr : argDescrs)
+        {
+            if (check_error(clSetKernelArg(mKernel[0], 0, argDescr.size, argDescr.mCLMem), "Error in clSetKernelArg"))
+                exit(1);
+        }
+
+        if (check_error(clEnqueueNDRangeKernel(mCmdQueue, mKernel[0], 1, nullptr, &globalWorkSize, nullptr, 0, nullptr, nullptr), "Error in clEnqueueNDRangeKernel"))
+            exit(1);
+
+        for(auto argDescr : argDescrs)
+        {
+            if (argDescr.mType == CL_MEM_READ_WRITE && check_error(
+                    clEnqueueReadBuffer(mCmdQueue, argDescr.mCLMem, CL_TRUE, 0, argDescr.size, nullptr, 0, nullptr,
+                                        nullptr), "Error in clEnqueueReadBuffer"))
+                exit(1);
+        }
+
+        clFinish(mCmdQueue);
+    }
+
+    void run() {}
+
+private:
+    //For the platform
+    cl_uint mNumPlatforms;
+    std::vector<cl_platform_id> mPlatform;
+    std::vector<char> mPlatformName;
+
+    //For the device
+    cl_uint mIdxPlatform;
+    cl_uint mIdxDevice;
+    cl_uint mNumDevices;
+    cl_device_id mDevice;
+    std::vector<cl_device_id> mDeviceId;
+    std::vector<char> mDeviceName;
+
+    //for context and command queue
+    cl_context mContext;
+    cl_command_queue mCmdQueue;
+
+    //for the program
+    cl_program mProgram[1];
+
+    //for the kernel
+    cl_kernel mKernel[1];
+
+};
+
 #endif //OPENCL_TEST_COMMON_H
