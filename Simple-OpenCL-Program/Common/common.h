@@ -208,7 +208,7 @@ public:
         mCmdQueue = clCreateCommandQueue(mContext, mDeviceId[mIdxDevice], 0, nullptr);
 
         //Let's allocate memory
-        for (auto descriptor : bufferDescr)
+        for (auto & descriptor : bufferDescr)
         {
             descriptor.mClMem = clCreateBuffer(mContext, descriptor.mType, descriptor.mBufferSize, nullptr, nullptr);
             if (descriptor.mType == CL_MEM_READ_ONLY && check_error(
@@ -264,25 +264,31 @@ public:
             exit(1);
 
         //Setting kernel args
-        for(auto argDescr : argDescrs)
+        int argIndex = 0;
+        for(auto & argDescr : argDescrs)
         {
-            if (check_error(clSetKernelArg(mKernel[0], 0, argDescr.size, argDescr.mCLMem), "Error in clSetKernelArg"))
+
+            if (check_error(clSetKernelArg(mKernel[0], argIndex++, argDescr.size, argDescr.mCLMem),
+                            "Error in clSetKernelArg"))
                 exit(1);
         }
 
         if (check_error(clEnqueueNDRangeKernel(mCmdQueue, mKernel[0], 1, nullptr, &globalWorkSize, nullptr, 0, nullptr, nullptr), "Error in clEnqueueNDRangeKernel"))
             exit(1);
 
-        for(auto argDescr : argDescrs)
+        for(auto & argDescr : argDescrs)
         {
-            if (argDescr.mType == CL_MEM_READ_WRITE && check_error(
-                    clEnqueueReadBuffer(mCmdQueue, *(argDescr.mCLMem), CL_TRUE, 0, argDescr.size, nullptr, 0, nullptr,
+            if ((argDescr.mType == CL_MEM_READ_WRITE) && check_error(
+                    clEnqueueReadBuffer(mCmdQueue, *(argDescr.mCLMem), CL_TRUE, 0, argDescr.size, &temp_out_val, 0, nullptr,
                                         nullptr), "Error in clEnqueueReadBuffer"))
                 exit(1);
         }
 
         clFinish(mCmdQueue);
     }
+
+public:
+    double temp_out_val;
 
 private:
     //For the platform

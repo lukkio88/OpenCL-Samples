@@ -9,6 +9,16 @@ bool newRunCL(double * a, double * b, double * c, const int & n) {
     oclPipelineManager.initializePlatform();
     oclPipelineManager.initializeDevice();
 
+    /*
+     * struct BufferDescriptor
+        {
+            void * mHostMem;
+            cl_uint mType; //such as CL_MEM_READ_ONLY, CL_MEM_READ_WRITE, etc...
+            size_t mBufferSize;
+            cl_mem mClMem;
+        };
+     */
+
     std::vector<BufferDescriptor> bufferDescr{
             BufferDescriptor{a, CL_MEM_READ_ONLY, sizeof(double)*n, 0},
             BufferDescriptor{b, CL_MEM_READ_ONLY, sizeof(double)*n, 0},
@@ -28,13 +38,15 @@ bool newRunCL(double * a, double * b, double * c, const int & n) {
      */
 
     std::vector<KernelArgDescriptor> argDescr{
-            KernelArgDescriptor{&bufferDescr[0].mClMem, bufferDescr[0].mBufferSize, bufferDescr[0].mType},
-            KernelArgDescriptor{&bufferDescr[1].mClMem, bufferDescr[1].mBufferSize, bufferDescr[1].mType},
+            KernelArgDescriptor{&bufferDescr[0].mClMem, sizeof(cl_mem), bufferDescr[0].mType},
+            KernelArgDescriptor{&bufferDescr[1].mClMem, sizeof(cl_mem), bufferDescr[1].mType},
             KernelArgDescriptor{nullptr, n*sizeof(double), bufferDescr[0].mType},
-            KernelArgDescriptor{&bufferDescr[2].mClMem, bufferDescr[2].mBufferSize, bufferDescr[2].mType},
+            KernelArgDescriptor{&bufferDescr[2].mClMem, sizeof(cl_mem), bufferDescr[2].mType},
     };
 
     oclPipelineManager.initKernelAndRun("dotProduct",argDescr,n);
+
+    *c = oclPipelineManager.temp_out_val;
 
 }
 
