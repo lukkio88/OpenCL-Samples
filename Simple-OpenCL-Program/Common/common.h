@@ -136,69 +136,15 @@ struct KernelArgDescriptor
 class OpenCLPipelineManager
 {
 public:
-    OpenCLPipelineManager() {
-
+    OpenCLPipelineManager(cl_int deviceType = CL_DEVICE_TYPE_GPU) {
+        initializePlatform();
+        initializeDevice(deviceType);
     }
 
     ~OpenCLPipelineManager() {
         //Teardown
         clReleaseCommandQueue(mCmdQueue);
         clReleaseContext(mContext);
-    }
-
-    void initializePlatform()
-    {
-
-        if (check_error(clGetPlatformIDs(0, nullptr, &mNumPlatforms), "Error in retrieving platforms number"))
-            exit(1);
-
-        mPlatform = std::vector<cl_platform_id>(mNumPlatforms);
-
-        if (check_error(clGetPlatformIDs(mNumPlatforms, &mPlatform[0], nullptr), "Error in retrieving platform ID"))
-            exit(1);
-
-        //Let's print the platforms
-        size_t strLen;
-        for (auto i = 0; i < mNumPlatforms; ++i)
-        {
-            if (check_error(clGetPlatformInfo(mPlatform[i], CL_PLATFORM_NAME, 0, nullptr, &strLen),
-                            "Error in first call getPlatformInfo"))
-                exit(1);
-            mPlatformName = std::vector<char>(strLen);
-            if (check_error(clGetPlatformInfo(mPlatform[i], CL_PLATFORM_NAME, strLen, &mPlatformName[0], nullptr),
-                            "Error in second call getPlatformInfo"))
-                exit(1);
-        }
-    }
-
-    void initializeDevice(cl_int deviceType = CL_DEVICE_TYPE_GPU)
-    {
-        mIdxPlatform = 0;
-        while (mIdxPlatform < mNumPlatforms) {
-            if (!check_error(clGetDeviceIDs(mPlatform[mIdxPlatform], deviceType, 0, nullptr, &mNumDevices), "Error in clGetDeviceIDs loop"))
-                break;
-            ++mIdxPlatform;
-        }
-
-        mDeviceId = std::vector<cl_device_id>(mNumDevices);
-        if (check_error(clGetDeviceIDs(mPlatform[mIdxPlatform], deviceType, mNumDevices, &mDeviceId[0], nullptr), "Error in calling clGetDeviceIDs"))
-            exit(1);
-
-        //TODO: Check if the lines above should be moved in the "Platform"
-
-        mIdxDevice = 0;
-        size_t strLen;
-        while (mIdxDevice < mNumDevices) {
-            if (!check_error(clGetDeviceInfo(mDeviceId[mIdxDevice], CL_DEVICE_NAME, 0, nullptr, &strLen), "Error in calling clGetDeviceInfo"))
-            {
-                mDeviceName = std::vector<char>(strLen);
-                if (!check_error(clGetDeviceInfo(mDeviceId[mIdxDevice], CL_DEVICE_NAME, strLen, &mDeviceName[0], nullptr), "")) {
-                    std::cout << "device[" << mIdxDevice << "] = " << std::string(mDeviceName.data()) << std::endl;
-                    break;
-                }
-            }
-            ++mIdxDevice;
-        }
     }
 
     void initContextAndCommandQueue(std::vector<BufferDescriptor>& bufferDescr)
@@ -285,6 +231,63 @@ public:
         }
 
         clFinish(mCmdQueue);
+    }
+
+private:
+
+    void initializePlatform()
+    {
+
+        if (check_error(clGetPlatformIDs(0, nullptr, &mNumPlatforms), "Error in retrieving platforms number"))
+            exit(1);
+
+        mPlatform = std::vector<cl_platform_id>(mNumPlatforms);
+
+        if (check_error(clGetPlatformIDs(mNumPlatforms, &mPlatform[0], nullptr), "Error in retrieving platform ID"))
+            exit(1);
+
+        //Let's print the platforms
+        size_t strLen;
+        for (auto i = 0; i < mNumPlatforms; ++i)
+        {
+            if (check_error(clGetPlatformInfo(mPlatform[i], CL_PLATFORM_NAME, 0, nullptr, &strLen),
+                            "Error in first call getPlatformInfo"))
+                exit(1);
+            mPlatformName = std::vector<char>(strLen);
+            if (check_error(clGetPlatformInfo(mPlatform[i], CL_PLATFORM_NAME, strLen, &mPlatformName[0], nullptr),
+                            "Error in second call getPlatformInfo"))
+                exit(1);
+        }
+    }
+
+    void initializeDevice(cl_int deviceType = CL_DEVICE_TYPE_GPU)
+    {
+        mIdxPlatform = 0;
+        while (mIdxPlatform < mNumPlatforms) {
+            if (!check_error(clGetDeviceIDs(mPlatform[mIdxPlatform], deviceType, 0, nullptr, &mNumDevices), "Error in clGetDeviceIDs loop"))
+                break;
+            ++mIdxPlatform;
+        }
+
+        mDeviceId = std::vector<cl_device_id>(mNumDevices);
+        if (check_error(clGetDeviceIDs(mPlatform[mIdxPlatform], deviceType, mNumDevices, &mDeviceId[0], nullptr), "Error in calling clGetDeviceIDs"))
+            exit(1);
+
+        //TODO: Check if the lines above should be moved in the "Platform"
+
+        mIdxDevice = 0;
+        size_t strLen;
+        while (mIdxDevice < mNumDevices) {
+            if (!check_error(clGetDeviceInfo(mDeviceId[mIdxDevice], CL_DEVICE_NAME, 0, nullptr, &strLen), "Error in calling clGetDeviceInfo"))
+            {
+                mDeviceName = std::vector<char>(strLen);
+                if (!check_error(clGetDeviceInfo(mDeviceId[mIdxDevice], CL_DEVICE_NAME, strLen, &mDeviceName[0], nullptr), "")) {
+                    std::cout << "device[" << mIdxDevice << "] = " << std::string(mDeviceName.data()) << std::endl;
+                    break;
+                }
+            }
+            ++mIdxDevice;
+        }
     }
 
 public:

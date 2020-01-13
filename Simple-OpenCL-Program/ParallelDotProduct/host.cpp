@@ -6,9 +6,6 @@ bool newRunCL(double * a, double * b, double * c, const int & n) {
 
     OpenCLPipelineManager oclPipelineManager;
 
-    oclPipelineManager.initializePlatform();
-    oclPipelineManager.initializeDevice();
-
     /*
      * struct BufferDescriptor
         {
@@ -44,7 +41,7 @@ bool newRunCL(double * a, double * b, double * c, const int & n) {
             KernelArgDescriptor{&bufferDescr[2].mClMem, sizeof(cl_mem), bufferDescr[2].mType},
     };
 
-    oclPipelineManager.initKernelAndRun("dotProduct",argDescr,n);
+    oclPipelineManager.initKernelAndRun("dotProduct",argDescr, n);
 
     *c = oclPipelineManager.temp_out_val;
 
