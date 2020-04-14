@@ -83,7 +83,7 @@ bool checkError(cl_int error, const std::string errorString)
     return true;
 }
 
-cl_int findPlatform()
+cl_int findPlatform(cl_platform_id& outPlatformId, const std::string & inPlatformVendor = "NVIDIA Corporation")
 {
     cl_uint numPlatforms;
 
@@ -121,7 +121,43 @@ cl_int findPlatform()
         {
             std::cout << "Error printing platform name : " << std::string(TranslateOpenCLError(error)) << std::endl;
         }
-        std::cout << std::string(string.data()) << std::endl;
+
+        std::string platformName(string.data());
+
+        error = clGetPlatformInfo(id,CL_PLATFORM_VENDOR,0,nullptr,&strLen);
+
+        if(error != CL_SUCCESS)
+        {
+            std::cout << "Error finding platform vendor" << std::string(TranslateOpenCLError(error)) << std::endl;
+        }
+
+        string.resize(strLen);
+        error = clGetPlatformInfo(id,CL_PLATFORM_VENDOR,strLen,string.data(),nullptr);
+
+        std::string platformVendor(string.data());
+
+        error = clGetPlatformInfo(id,CL_PLATFORM_VERSION,0,nullptr,&strLen);
+
+        if(error != CL_SUCCESS)
+        {
+            std::cout << "Error finding platform version" << std::string(TranslateOpenCLError(error)) << std::endl;
+        }
+
+        string.resize(strLen);
+        error = clGetPlatformInfo(id,CL_PLATFORM_VERSION,strLen,string.data(),nullptr);
+
+        std::string platformVersion(string.data());
+
+        std::cout << "Platform name : " << platformName << std::endl;
+        std::cout << "Platform vendor : " << platformVendor << std::endl;
+        std::cout << "Platform version : " << platformVersion << std::endl;
+
+        if(platformVendor == inPlatformVendor)
+        {
+            outPlatformId = id;
+        }
+
+        std::cout << std::endl;
 
     }
 
@@ -129,8 +165,93 @@ cl_int findPlatform()
 
 }
 
+cl_int findDevice(cl_platform_id platformId)
+{
+    cl_uint numDevices;
+    cl_int error;
+
+    error = clGetDeviceIDs(platformId,CL_DEVICE_TYPE_GPU,0,nullptr,&numDevices);
+    if(error != CL_SUCCESS)
+    {
+        std::cout << "Error when getting device id : " << TranslateOpenCLError(error) << std::endl;
+        return error;
+    }
+
+    std::vector<cl_device_id> deviceId(numDevices);
+    error = clGetDeviceIDs(platformId,CL_DEVICE_TYPE_GPU,numDevices,deviceId.data(),nullptr);
+
+    if(error != CL_SUCCESS)
+    {
+        std::cout << "Error when getting device id : " << TranslateOpenCLError(error) << std::endl;
+        return error;
+    }
+
+    for(const auto & id : deviceId)
+    {
+
+        size_t sizeStr;
+        std::vector<char> string;
+
+        error = clGetDeviceInfo(id,CL_DEVICE_NAME,0,nullptr,&sizeStr);
+        if(error != CL_SUCCESS)
+        {
+            std::cout << "Error when quering device name : " << TranslateOpenCLError(error) << std::endl;
+            return error;
+        }
+
+        string.resize(sizeStr);
+        error = clGetDeviceInfo(id,CL_DEVICE_NAME,sizeStr,string.data(),nullptr);
+
+        if(error != CL_SUCCESS)
+        {
+            std::cout << "Error when quering device name : " << TranslateOpenCLError(error) << std::endl;
+            return error;
+        }
+
+        std::string deviceName(string.data());
+        std::cout << "Device name : " <<  deviceName << std::endl;
+
+        //Work group size
+        size_t size;
+        error = clGetDeviceInfo(id,CL_DEVICE_MAX_WORK_GROUP_SIZE,sizeof(size_t),&size,nullptr);
+        if(error != CL_SUCCESS)
+        {
+            std::cout << "Error when quering max work group size : " << TranslateOpenCLError(error) << std::endl;
+            return error;
+        }
+        std::cout << "Max work group size : " << size << std::endl;
+
+        std::vector<size_t> workItemSizes(3);
+        error = clGetDeviceInfo(id,CL_DEVICE_MAX_WORK_ITEM_SIZES,3*sizeof(size_t),workItemSizes.data(),nullptr);
+
+        if(error != CL_SUCCESS)
+        {
+            std::cout << "Error when quering work item size : " << TranslateOpenCLError(error) << std::endl;
+            return error;
+        }
+
+        std::cout << "Max work item size : (" << workItemSizes[0] << ", " << workItemSizes[1] << ", "
+                  << workItemSizes[2] << ")" << std::endl;
+
+        cl_uint dimension;
+        error = clGetDeviceInfo(id,CL_DEVICE_MAX_WORK_ITEM_DIMENSIONS,sizeof(cl_uint),&dimension,nullptr);
+        if(error != CL_SUCCESS)
+        {
+            std::cout << "Error when quering work item dimension : " << TranslateOpenCLError(error) << std::endl;
+            return error;
+        }
+
+        std::cout << "Max work item dimension : " << dimension << std::endl;
+    }
+
+}
+
 int main(int argc, char** argv)
 {
-    findPlatform();
+
+    cl_platform_id platformId;
+
+    findPlatform(platformId,"Intel(R) Corporation");
+    findDevice(platformId);
     return 0;
 }
