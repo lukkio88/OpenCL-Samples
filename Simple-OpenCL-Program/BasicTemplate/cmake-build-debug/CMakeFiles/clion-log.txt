@@ -1,0 +1,4 @@
+/opt/clion-2018.2.5/bin/cmake/linux/bin/cmake -DCMAKE_BUILD_TYPE=Debug -G "CodeBlocks - Unix Makefiles" /home/SERILOCAL/l.gagliano/PersonalRepository/OpenCL-Samples/Simple-OpenCL-Program/BasicTemplate
+-- Configuring done
+-- Generating done
+-- Build files have been written to: /home/SERILOCAL/l.gagliano/PersonalRepository/OpenCL-Samples/Simple-OpenCL-Program/BasicTemplate/cmake-build-debug

@@ -320,3 +320,4 @@ private:
 };
 
 #endif //OPENCL_TEST_COMMON_H
+...
