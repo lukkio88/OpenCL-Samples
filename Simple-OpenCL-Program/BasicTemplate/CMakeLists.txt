@@ -3,8 +3,10 @@ project(BasicTemplate)
 
 set(CMAKE_BUILD_TYPE Debug)
 set(CMAKE_CXX_STANDARD 11)
-set(OpenCL_INCLUDE_DIR /usr/local/cuda-10.0/include/)
-set(OpenCL_LIBRARY_DIR /usr/local/cuda-10.0/lib64/libOpenCL.so)
+if(UNIX)
+    set(OpenCL_INCLUDE_DIR /usr/local/cuda-10.0/include/)
+    set(OpenCL_LIBRARY_DIR /usr/local/cuda-10.0/lib64/libOpenCL.so)
+endif()
 
 add_library(opencl SHARED IMPORTED)
 set_target_properties(opencl PROPERTIES IMPORTED_LOCATION ${OpenCL_LIBRARY_DIR})

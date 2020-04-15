@@ -165,7 +165,7 @@ cl_int findPlatform(cl_platform_id& outPlatformId, const std::string & inPlatfor
 
 }
 
-cl_int findDevice(cl_platform_id platformId)
+cl_int findDevice(cl_platform_id platformId, cl_device_id& outDeviceId)
 {
     cl_uint numDevices;
     cl_int error;
@@ -241,17 +241,42 @@ cl_int findDevice(cl_platform_id platformId)
             return error;
         }
 
+        outDeviceId = id;
         std::cout << "Max work item dimension : " << dimension << std::endl;
     }
 
+}
+
+cl_int createContextAndCommandQueue(cl_device_id deviceId, cl_context& outContext, cl_command_queue& outCommandQueue)
+{
+    cl_int error;
+
+    outContext = clCreateContext(nullptr,1,&deviceId,nullptr,nullptr,&error);
+
+    if(error != CL_SUCCESS)
+    {
+        std::cout << "Error when creating command queue" << std::endl;
+        return error;
+    }
+
+    outCommandQueue = clCreateCommandQueue(outContext,deviceId,0,&error);
+
+    if(error != CL_SUCCESS)
+    {
+        std::cout << "Error when creating command queue" << std::endl;
+    }
 }
 
 int main(int argc, char** argv)
 {
 
     cl_platform_id platformId;
+    cl_device_id deviceId;
+    cl_context context;
+    cl_command_queue command_queue;
 
     findPlatform(platformId,"Intel(R) Corporation");
-    findDevice(platformId);
+    findDevice(platformId,deviceId);
+    createContextAndCommandQueue(deviceId, context, command_queue);
     return 0;
 }
