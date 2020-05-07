@@ -1,0 +1,3 @@
+/home/SERILOCAL/l.gagliano/PersonalRepository/OpenCL-Samples/Simple-OpenCL-Program/QueringPlatforms/cmake-build-debug/CMakeFiles/rebuild_cache.dir
+/home/SERILOCAL/l.gagliano/PersonalRepository/OpenCL-Samples/Simple-OpenCL-Program/QueringPlatforms/cmake-build-debug/CMakeFiles/edit_cache.dir
+/home/SERILOCAL/l.gagliano/PersonalRepository/OpenCL-Samples/Simple-OpenCL-Program/QueringPlatforms/cmake-build-debug/CMakeFiles/basic-template.dir
