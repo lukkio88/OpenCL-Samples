@@ -1,1 +1,0 @@
-/usr/bin/c++  -g   CMakeFiles/basic-template.dir/main.cpp.o  -o basic-template -Wl,-rpath,/usr/local/cuda-10.0/lib64 /usr/local/cuda-10.0/lib64/libOpenCL.so 
