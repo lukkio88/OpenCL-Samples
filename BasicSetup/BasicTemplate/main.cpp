@@ -121,7 +121,7 @@ cl_int basicProgram(
     clSetKernelArg(kernel,2,sizeof(cl_mem),&mem_C);
 
     const size_t globalWorkSize = vectorSize;
-    clEnqueueNDRangeKernel(commandQueue,kernel,2,nullptr,&globalWorkSize,nullptr,0,nullptr,nullptr);
+    clEnqueueNDRangeKernel(commandQueue,kernel,1,nullptr,&globalWorkSize,nullptr,0,nullptr,nullptr);
 
     clEnqueueReadBuffer(commandQueue,mem_C,CL_TRUE,0,vectorSize*sizeof(double),output,0,nullptr,nullptr);
 
