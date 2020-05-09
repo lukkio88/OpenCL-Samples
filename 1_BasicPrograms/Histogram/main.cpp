@@ -141,11 +141,13 @@ int main(int argc, char** argv)
 
     run(filename,programSource, deviceId, context, commandQueue,histogram);
 
-    for(int i = 0; i < 256; ++i)
+    std::cout << "histogram = [";
+    int i;
+    for(i = 0; i < 255; ++i)
     {
-        std::cout << i << " : " << histogram[i] << std::endl;
+        std::cout << histogram[i] << ", ";
     }
-
+    std::cout << histogram[i] << "];" << std::endl;
 
     return 0;
 }
