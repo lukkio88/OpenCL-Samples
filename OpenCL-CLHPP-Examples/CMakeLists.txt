@@ -12,6 +12,7 @@ set(OpenCL_OtherInclude ${OpenCL_external}OpenCL-Headers/)
 endif()
 
 set(EXAMPLES-OPENCL-CPP 
+	utils
 	cl-src
 	print-platforms-and-devices 
 	vector-add
@@ -28,8 +29,8 @@ endif()
 function(BUILD_TARGET project-name)
 	set(SRC_FILES main.cpp)
 	add_executable(${project-name} ${SRC_FILES})
-	target_include_directories(${project-name} PUBLIC ${OpenCL_INCLUDE_DIR} ${OpenCL_OtherInclude})
-	target_link_libraries(${project-name} opencl)
+	target_include_directories(${project-name} PUBLIC ${OpenCL_INCLUDE_DIR} ${OpenCL_OtherInclude} ${CMAKE_SOURCE_DIR}/utils)
+	target_link_libraries(${project-name} opencl utils)
 endfunction()
 
 foreach(EXAMPLE ${EXAMPLES-OPENCL-CPP})
