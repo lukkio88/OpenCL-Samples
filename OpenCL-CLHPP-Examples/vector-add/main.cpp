@@ -3,6 +3,8 @@
 
 #include <CL/opencl.hpp>
 #include <iostream>
+#include <fstream>
+#include <sstream>
 
 void printVector(std::vector<float>& v)
 {
@@ -11,6 +13,14 @@ void printVector(std::vector<float>& v)
         std::cout << v[i] << " ";
     }
     std::cout << std::endl;
+}
+
+std::string readFile(const std::string& path)
+{
+    std::ifstream t(path);
+    std::stringstream buffer;
+    buffer << t.rdbuf();
+    return buffer.str();
 }
 
 void printPlatformsAndDevices(
@@ -44,15 +54,7 @@ void printPlatformsAndDevices(
         }
     }
 
-    const cl::string& kernelSource =
-        "kernel void vadd(\n"
-        "   global float *a,\n"
-        "   global float *b,\n"
-        "   global float *c\n"
-        "){\n"
-        "   int i = get_global_id(0);\n"
-        "   c[i] = a[i] + b[i];\n"
-        "}";
+    const cl::string& kernelSource = readFile(CL_KERNEL_PATH + std::string("/vadd.cl"));
 
     cl::Context context(device);
     cl::Device d = context.getInfo<CL_CONTEXT_DEVICES>()[0];
