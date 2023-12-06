@@ -14,7 +14,9 @@ endif()
 set(EXAMPLES-OPENCL-CPP 
 	cl-src
 	print-platforms-and-devices 
-	vector-add)
+	vector-add
+	vec2vec
+	vec2scalar)
 
 set(OpenCL_LIBRARY_DIR ${GitProjectDir}OpenCL-SDK/install/lib/OpenCL.lib)
 
