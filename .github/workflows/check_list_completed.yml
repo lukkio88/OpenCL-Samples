@@ -5,7 +5,7 @@ on:
 
 jobs:
   task-check:
-    runs-on: ubuntu-latest
+    runs-on: windows-latest
     steps:
       - uses: kentaro-m/task-completed-checker-action@v0.1.2
         with:
