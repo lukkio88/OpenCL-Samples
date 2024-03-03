@@ -1,151 +1,101 @@
-#include <CL/cl.h>
-#include <cstdio>
-#include <cstring>
+#define CL_HPP_ENABLE_EXCEPTIONS
+#define CL_HPP_TARGET_OPENCL_VERSION 300
 
-/*
- * Simplest openCL program that execute a simple kernel for vector addition using GPU
- * This example is mostly written in C style, there's no error checking because the focus
- * is on the basic structure of a OpenCL program.
-*/
+#include <CL/opencl.hpp>
+#include <iostream>
 
-cl_int basicProgram(
-        double * inputA,
-        double * inputB,
-        double * output,
-        int vectorSize, //this is common for A,B and output
-        const char * platformName = "NVIDIA CUDA",
-        cl_device_type deviceType = CL_DEVICE_TYPE_GPU,
-        const char * deviceName = "GeForce GTX 1070")
+void printVector(std::vector<float>& v)
 {
-    //Selecting the platform and device
-    cl_uint numPlatforms;
-    cl_int error = clGetPlatformIDs(0,nullptr,&numPlatforms);
-
-    cl_platform_id *platform = new cl_platform_id[numPlatforms];
-    error = clGetPlatformIDs(numPlatforms,platform,nullptr);
-
-    int platformIdx;
-    for(platformIdx = 0; platformIdx < numPlatforms; ++platformIdx)
+    for (int i = 0; i < v.size(); ++i)
     {
-        char * currentPlatformName;
-        size_t size;
-        error = clGetPlatformInfo(platform[platformIdx],CL_PLATFORM_NAME,0,nullptr,&size);
-        currentPlatformName = new char[size];
-        error = clGetPlatformInfo(platform[platformIdx],CL_PLATFORM_NAME,size,currentPlatformName,nullptr);
+        std::cout << v[i] << " ";
+    }
+    std::cout << std::endl;
+}
 
-        if(strcmp(currentPlatformName,platformName) == 0)
+void printPlatformsAndDevices(
+    const std::string& platformName = "NVIDIA CUDA",
+    const cl_device_type& deviceType = CL_DEVICE_TYPE_GPU,
+    const std::string& deviceName = "GeForce GT 730")
+{
+    std::vector<cl::Platform> platforms;
+    cl::Platform::get(&platforms);
+    cl::Platform platform;
+
+    for (auto& p : platforms) {
+        const std::string& currentPlatformName = p.getInfo<CL_PLATFORM_NAME>();
+        if (currentPlatformName == platformName)
         {
-            delete [] currentPlatformName;
-            break;
+            std::cout << p.getInfo<CL_PLATFORM_NAME>() << std::endl;
+            platform = p;
         }
-        delete [] currentPlatformName;
-
     }
 
-    if(platformIdx == numPlatforms)
+    std::vector<cl::Device> devices;
+    platform.getDevices(deviceType, &devices);
+    cl::Device device;
+    for (auto& d : devices)
     {
-        printf("Could not find platform %s\n",platformName);
-    }
-    else
-    {
-        printf("Platform %s found\n",platformName);
-    }
-
-    cl_platform_id platformId = platform[platformIdx];
-    delete[] platform;
-
-    cl_device_id * device;
-    cl_uint numDevices;
-    error = clGetDeviceIDs(platformId,deviceType,0,nullptr,&numDevices);
-    device = new cl_device_id[numDevices];
-    error = clGetDeviceIDs(platformId,deviceType,numDevices,device,nullptr);
-
-    int deviceIdx;
-    for(deviceIdx = 0; deviceIdx < numDevices; ++deviceIdx)
-    {
-        char * currentDeviceName;
-        size_t size;
-        error = clGetDeviceInfo(device[deviceIdx],CL_DEVICE_NAME,0,nullptr,&size);
-        currentDeviceName = new char[size];
-        error = clGetDeviceInfo(device[deviceIdx],CL_DEVICE_NAME,size,currentDeviceName,nullptr);
-        if(strcmp(currentDeviceName,deviceName) == 0)
+        const std::string& currentDeviceName = d.getInfo<CL_DEVICE_NAME>();
+        if (deviceName == currentDeviceName)
         {
-            delete [] currentDeviceName;
-            break;
+            std::cout << d.getInfo<CL_DEVICE_NAME>() << std::endl;
+            device = d;
         }
-        delete [] currentDeviceName;
     }
 
-    if(deviceIdx == numDevices)
+    const cl::string& kernelSource =
+        "kernel void vadd(\n"
+        "   global float *a,\n"
+        "   global float *b,\n"
+        "   global float *c\n"
+        "){\n"
+        "   int i = get_global_id(0);\n"
+        "   c[i] = a[i] + b[i];\n"
+        "}";
+
+    cl::Context context(device);
+    cl::Device d = context.getInfo<CL_CONTEXT_DEVICES>()[0];
+    std::cout << d.getInfo<CL_DEVICE_NAME>() << std::endl;
+    cl::Program program(context, kernelSource);
+    auto buildResult = program.build(device);
+
+    if (buildResult != CL_SUCCESS)
     {
-        printf("Cannot find device %s\n",deviceName);
-    }
-    else
-    {
-        printf("Device %s found\n",deviceName);
+        std::cout << "Cannot build program" << std::endl;
+        exit(1);
     }
 
-    cl_device_id deviceId = device[deviceIdx];
-    delete []device;
+    int DIM = 4;
+    cl::Buffer aBuffer(context, CL_MEM_READ_ONLY, sizeof(float) * DIM);
+    cl::Buffer bBuffer(context, CL_MEM_READ_ONLY, sizeof(float) * DIM);
+    cl::Buffer cBuffer(context, CL_MEM_WRITE_ONLY, sizeof(float) * DIM);
 
-    //Creating context and command queue
-    cl_context context = clCreateContext(nullptr,1,&deviceId,nullptr,nullptr,&error);
-    cl_command_queue commandQueue = clCreateCommandQueue(context,deviceId,0,&error);
+    std::vector<float> a{1.0,2.0,3.0,4.0};
+    std::vector<float> b{ 4.0,3.0,2.0,1.0 };
+    std::vector<float> c(DIM);
 
-    //Create program, build and create kernel
-    const char * programSource =
-            "__kernel void vecAdd(\n"
-            "       __global double * inputA,\n"
-            "       __global double * inputB,\n"
-            "       __global double * outputC) {\n"
-            "    size_t idx = get_global_id(0);\n"
-            "   outputC[idx] = inputA[idx] + inputB[idx];\n"
-            "}";
-    const size_t sourceLength = strlen(programSource);
-    cl_program program = clCreateProgramWithSource(context,1,&programSource,&sourceLength,&error);
-    error = clBuildProgram(program,1,&deviceId,nullptr,nullptr,nullptr);
-    cl_kernel kernel = clCreateKernel(program,"vecAdd",&error);
+    cl::Kernel kernel(program, "vadd");
+    kernel.setArg(0, aBuffer);
+    kernel.setArg(1, bBuffer);
+    kernel.setArg(2, cBuffer);
 
-    //Create input and output clBuffers
-    cl_mem mem_A = clCreateBuffer(context,CL_MEM_READ_ONLY,vectorSize*sizeof(double),inputA,&error);
-    cl_mem mem_B = clCreateBuffer(context,CL_MEM_READ_ONLY,vectorSize*sizeof(double),inputB,&error);
-    cl_mem mem_C = clCreateBuffer(context,CL_MEM_READ_WRITE,vectorSize*sizeof(double),output,&error);
-    clEnqueueWriteBuffer(commandQueue,mem_A,CL_TRUE,0,vectorSize*sizeof(double),inputA,0,nullptr,nullptr);
-    clEnqueueWriteBuffer(commandQueue,mem_B,CL_TRUE,0,vectorSize*sizeof(double),inputB,0,nullptr,nullptr);
+    cl::CommandQueue queue(context, device, cl::QueueProperties::Profiling);
+    queue.enqueueWriteBuffer(aBuffer, CL_TRUE, 0, sizeof(float) * DIM, a.data());
+    queue.enqueueWriteBuffer(bBuffer, CL_TRUE, 0, sizeof(float) * DIM, b.data());
 
-    clFinish(commandQueue);
+    queue.enqueueNDRangeKernel(kernel,cl::NullRange,cl::NDRange(DIM));
+    queue.finish();
+    queue.flush();
 
-    //Setting kernel argument and NDRange
-    clSetKernelArg(kernel,0,sizeof(cl_mem),&mem_A);
-    clSetKernelArg(kernel,1,sizeof(cl_mem),&mem_B);
-    clSetKernelArg(kernel,2,sizeof(cl_mem),&mem_C);
+    queue.enqueueReadBuffer(cBuffer, CL_TRUE, 0, sizeof(float) * DIM, c.data());
 
-    const size_t globalWorkSize = vectorSize;
-    clEnqueueNDRangeKernel(commandQueue,kernel,1,nullptr,&globalWorkSize,nullptr,0,nullptr,nullptr);
-
-    clEnqueueReadBuffer(commandQueue,mem_C,CL_TRUE,0,vectorSize*sizeof(double),output,0,nullptr,nullptr);
-
-    clFinish(commandQueue);
-
-    //Teardown
-    clReleaseCommandQueue(commandQueue);
-    clReleaseContext(context);
-
+    printVector(a);
+    printVector(b);
+    printVector(c);
 }
 
 int main(int argc, char** argv)
 {
-
-    double arrayA[] = {1.0,2.0,3.0,4.0,5.0};
-    double arrayB[] = {5.0,4.0,3.0,2.0,1.0};
-    double arrayC[] = {0.0,0.0,0.0,0.0,0.0};
-    int numberOfElements = 5;
-
-    basicProgram(arrayA,arrayB,arrayC,numberOfElements);
-
-    for(int i = 0; i < numberOfElements; ++i)
-    {
-        printf("%f + %f = %f\n",arrayA[i],arrayB[i],arrayC[i]);
-    }
-    return 0;
+    printPlatformsAndDevices();
 }
