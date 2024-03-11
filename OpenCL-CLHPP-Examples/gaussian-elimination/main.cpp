@@ -40,15 +40,20 @@ void gaussEliminationExample(
     queue.enqueueWriteBuffer(orderOfMatrix, CL_TRUE, 0, sizeof(int), &ORDER_MATRIX);
     queue.enqueueWriteBuffer(ABuffer, CL_TRUE, 0, sizeof(float) * NUMBER_OF_ENTRIES, A.data());
 
-    std::vector<cl::Event> events;
+    std::vector<std::vector<cl::Event>> events(ORDER_MATRIX);
+    for (int i = 0; i < ORDER_MATRIX; ++i)
+    {
+        events[i] = std::vector<cl::Event>((i != 0));
+    }
 
     for (int i = 1; i < ORDER_MATRIX; ++i)
     {
         cl::Event newEvent;
         queue.enqueueNDRangeKernel(
-            gaussKernel, 0, cl::NullRange, 
+            gaussKernel, cl::NullRange, 
             cl::NDRange{ cl::size_type(ORDER_MATRIX - i), cl::size_type(ORDER_MATRIX - i + 1) },
-            &events, &events[0]);
+            cl::NullRange,
+            (events[i - 1].size() == 0) ? NULL : &events[i - 1], & events[i][0]);
     }
    
     
