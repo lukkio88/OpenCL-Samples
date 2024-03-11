@@ -17,7 +17,8 @@ set(EXAMPLES-OPENCL-CPP
 	print-platforms-and-devices 
 	vector-add
 	vec2vec
-	vec2scalar)
+	vec2scalar
+	gaussian-elimination)
 
 set(OpenCL_LIBRARY_DIR ${GitProjectDir}OpenCL-SDK/install/lib/OpenCL.lib)
 
